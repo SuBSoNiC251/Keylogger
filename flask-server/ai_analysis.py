@@ -3,7 +3,7 @@
 # # import google.generativeai as genai
 
 # # # Replace 'your-google-api-key' with your actual Google Gemini API key
-# # GOOGLE_API_KEY = 'AIzaSyB76J0xs2XICAONAzbIGhEi8ZnO73uQ95Y'
+# # GOOGLE_API_KEY = 'your-google-api-key'
 # # genai.configure(api_key=GOOGLE_API_KEY)
 
 # # def analyze_keystrokes(keystrokes):
@@ -32,7 +32,7 @@
 # import google.generativeai as genai
 
 # # Replace 'your-google-api-key' with your actual Google Gemini API key
-# GOOGLE_API_KEY = 'AIzaSyB76J0xs2XICAONAzbIGhEi8ZnO73uQ95Y'
+# GOOGLE_API_KEY = 'your-google-api-key'
 # genai.configure(api_key=GOOGLE_API_KEY)
 
 # def analyze_keystrokes(keystrokes):
@@ -58,7 +58,7 @@
 # # import google.generativeai as genai
 
 # # # Replace 'your-google-api-key' with your actual Google Gemini API key
-# # GOOGLE_API_KEY = 'AIzaSyB76J0xs2XICAONAzbIGhEi8ZnO73uQ95Y'
+# # GOOGLE_API_KEY = 'your-google-api-key'
 # # genai.configure(api_key=GOOGLE_API_KEY)
 
 # # def analyze_keystrokes(keystrokes):

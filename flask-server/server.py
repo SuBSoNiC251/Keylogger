@@ -9,7 +9,7 @@
 
 # app = Flask(__name__)
 
-# GOOGLE_API_KEY = 'AIzaSyB76J0xs2XICAONAzbIGhEi8ZnO73uQ95Y'
+# GOOGLE_API_KEY = 'your-google-api-key'
 # genai.configure(api_key=GOOGLE_API_KEY) #INPUT : Simulate the typing process from the provided keystroke log and output ONLY the final, intended text. Disregard all non-printing keystrokes, including but not limited to backspace, arrow keys, modifier keys, and function keys. The output should represent exactly what would be displayed on the screen after the entire sequence of keystrokes is processed
 
 # logs_dir = "user_logs/"  # Directory to store user logs
@@ -143,7 +143,7 @@ import google.generativeai as genai
 
 app = Flask(__name__)
 
-GOOGLE_API_KEY = 'AIzaSyB76J0xs2XICAONAzbIGhEi8ZnO73uQ95Y'
+GOOGLE_API_KEY = 'your-google-api-key'
 genai.configure(api_key=GOOGLE_API_KEY) #INPUT : Simulate the typing process from the provided keystroke log and output ONLY the final, intended text. Disregard all non-printing keystrokes, including but not limited to backspace, arrow keys, modifier keys, and function keys. The output should represent exactly what would be displayed on the screen after the entire sequence of keystrokes is processed
 
 logs_dir = "user_logs/"  # Directory to store user logs
