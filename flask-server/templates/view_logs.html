@@ -1,0 +1,351 @@
+<!-- view_logs.html
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>View Logs</title>
+    <style>
+        body {
+            background-color: black;
+            color: green;
+            font-family: 'Courier New', Courier, monospace;
+            padding: 20px;
+        }
+        h1 {
+            color: yellowgreen;
+        }
+        .log-container {
+            display: flex;
+            flex-wrap: wrap;
+        }
+        .log-column {
+            flex: 1 1 30%;
+            max-height: 500px;
+            overflow-y: auto;
+            margin: 10px;
+            padding: 10px;
+            border: 1px solid #333;
+            border-radius: 5px;
+            background-color: #222;
+        }
+        .log-item {
+            word-wrap: break-word;
+        }
+        .reset-button, .analyze-button {
+            background-color: red;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            margin-top: 10px;
+            cursor: pointer;
+        }
+        .analyze-button {
+            background-color: blue;
+        }
+        .crucial-info {
+            margin-top: 20px;
+            padding: 10px;
+            border: 1px solid #333;
+            border-radius: 5px;
+            background-color: #222;
+            color: yellow;
+        }
+    </style>
+</head>
+<body>
+    <h1>Logs for {{ user }}</h1>
+    <div class="log-container">
+        {% for device, logs in logs.items() %}
+            <div class="log-column">
+                <h2>Device: {{ device }}</h2>
+                {% for log in logs %}
+                    <div class="log-item">{{ log }}</div>
+                {% endfor %}
+            </div>
+        {% endfor %}
+    </div>
+    <button class="reset-button" onclick="resetLogs()">Reset Logs</button>
+    <button class="display-button" onclick="displayLogs()">Display Logs</button>
+    <button class="analyze-button" onclick="analyzeLogs()">Analyze Logs</button>
+
+    <div id="crucial-info" class="crucial-info" style="display: none;"></div>
+
+    <script>
+        function resetLogs() {
+            fetch(`/clear_logs/{{ user }}`, { method: 'DELETE' })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === "success") {
+                        location.reload(); // Refresh the page after logs are cleared
+                    } else {
+                        console.error('Failed to clear logs');
+                    }
+                })
+                .catch(error => console.error('Error:', error));
+        }
+
+        function analyzeLogs() {
+            fetch(`/analyze/{{ user }}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === "success") {
+                        const crucialInfoDiv = document.getElementById('crucial-info');
+                        crucialInfoDiv.innerHTML = `<h2>Crucial Information:</h2><p>${data.crucial_info}</p>`;
+                        crucialInfoDiv.style.display = 'block';
+                    } else {
+                        console.error('Failed to analyze logs');
+                    }
+                })
+                .catch(error => console.error('Error:', error));
+        }
+    </script>
+</body>
+</html> -->
+
+
+<!-- <!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>View Logs</title>
+    <style>
+        body {
+            background-color: black;
+            color: green;
+            font-family: 'Courier New', Courier, monospace;
+            padding: 20px;
+        }
+        h1 {
+            color: yellowgreen;
+        }
+        .log-container {
+            display: flex;
+            flex-wrap: wrap;
+        }
+        .log-column {
+            flex: 1 1 30%;
+            max-height: 500px;
+            overflow-y: auto;
+            margin: 10px;
+            padding: 10px;
+            border: 1px solid #333;
+            border-radius: 5px;
+            background-color: #222;
+        }
+        .log-item {
+            word-wrap: break-word;
+        }
+        .reset-button, .analyze-button {
+            background-color: red;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            margin-top: 10px;
+            cursor: pointer;
+        }
+        .analyze-button {
+            background-color: blue;
+        }
+        .crucial-info {
+            margin-top: 20px;
+            padding: 10px;
+            border: 1px solid #333;
+            border-radius: 5px;
+            background-color: #222;
+            color: yellow;
+        }
+        .output-textarea {
+            width: 100%;
+            min-height: 300px;
+            padding: 10px;
+            margin-top: 20px;
+            background-color: #333;
+            color: white;
+            border: 1px solid #555;
+            border-radius: 5px;
+            font-family: 'Courier New', Courier, monospace;
+            resize: vertical;
+        }
+    </style>
+</head>
+<body>
+    <h1>Logs for {{ user }}</h1>
+    <div class="log-container">
+        {% for device, logs in logs.items() %}
+            <div class="log-column">
+                <h2>Device: {{ device }}</h2>
+                {% for log in logs %}
+                    <div class="log-item">{{ log }}</div>
+                {% endfor %}
+            </div>
+        {% endfor %}
+    </div>
+    <button class="reset-button" onclick="resetLogs()">Reset Logs</button>
+    <button class="analyze-button" onclick="analyzeLogs()">Analyze Logs</button>
+
+    <textarea id="output-textarea" class="output-textarea" readonly></textarea>
+
+    <script>
+        function resetLogs() {
+            fetch(`/clear_logs/{{ user }}`, { method: 'DELETE' })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === "success") {
+                        location.reload(); // Refresh the page after logs are cleared
+                    } else {
+                        console.error('Failed to clear logs');
+                    }
+                })
+                .catch(error => console.error('Error:', error));
+        }
+
+        function analyzeLogs() {
+            fetch(`/analyze/{{ user }}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === "success") {
+                        const outputTextarea = document.getElementById('output-textarea');
+                        outputTextarea.value = data.crucial_info;
+                        outputTextarea.focus();
+                        outputTextarea.select();
+                    } else {
+                        console.error('Failed to analyze logs');
+                    }
+                })
+                .catch(error => console.error('Error:', error));
+        }
+    </script>
+</body>
+</html> -->
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>View Logs</title>
+    <style>
+        body {
+            background-color: black;
+            color: green;
+            font-family: 'Courier New', Courier, monospace;
+            padding: 20px;
+        }
+        h1 {
+            color: yellowgreen;
+        }
+        .log-container {
+            display: flex;
+            flex-wrap: wrap;
+        }
+        .log-column {
+            flex: 1 1 30%;
+            max-height: 500px;
+            overflow-y: auto;
+            margin: 10px;
+            padding: 10px;
+            border: 1px solid #333;
+            border-radius: 5px;
+            background-color: #222;
+        }
+        .log-item {
+            word-wrap: break-word;
+        }
+        .reset-button, .analyze-button {
+            background-color: red;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            margin-top: 10px;
+            cursor: pointer;
+        }
+        .analyze-button {
+            background-color: blue;
+        }
+        .crucial-info {
+            margin-top: 20px;
+            padding: 10px;
+            border: 1px solid #333;
+            border-radius: 5px;
+            background-color: #222;
+            color: yellow;
+        }
+        .text-editor {
+            background-color: #333;
+            color: white;
+            padding: 10px;
+            margin-top: 20px;
+            border-radius: 5px;
+        }
+        .text-editor textarea {
+            width: 100%;
+            min-height: 200px;
+            background-color: inherit;
+            color: inherit;
+            border: none;
+            outline: none;
+            font-family: 'Courier New', Courier, monospace;
+            resize: vertical;
+        }
+    </style>
+</head>
+<body>
+    <h1>Logs for {{ user }}</h1>
+    <div class="log-container">
+        {% for device, logs in logs.items() %}
+            <div class="log-column">
+                <h2>Device: {{ device }}</h2>
+                {% for log in logs %}
+                    <div class="log-item">{{ log }}</div>
+                {% endfor %}
+            </div>
+        {% endfor %}
+    </div>
+    <button class="reset-button" onclick="resetLogs()">Reset Logs</button>
+    <button class="analyze-button" onclick="analyzeLogs()">Analyze Logs</button>
+
+    <div id="crucial-info" class="crucial-info" style="display: none;"></div>
+
+    <div class="text-editor" id="editor">
+        <textarea id="editor-textarea" placeholder="Generated Output"></textarea>
+    </div>
+
+    <script>
+        function resetLogs() {
+            fetch(`/clear_logs/{{ user }}`, { method: 'DELETE' })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === "success") {
+                        location.reload(); // Refresh the page after logs are cleared
+                    } else {
+                        console.error('Failed to clear logs');
+                    }
+                })
+                .catch(error => console.error('Error:', error));
+        }
+
+        function analyzeLogs() {
+            fetch(`/analyze/{{ user }}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === "success") {
+                        const editorTextarea = document.getElementById('editor-textarea');
+                        editorTextarea.value = `Crucial Information:\n\n${data.crucial_info}`;
+                        document.getElementById('crucial-info').style.display = 'none';
+                        document.getElementById('editor').style.display = 'block';
+                    } else {
+                        console.error('Failed to analyze logs');
+                    }
+                })
+                .catch(error => console.error('Error:', error));
+        }
+    </script>
+</body>
+</html>
+
+
+<!-- THIS LAST COMMENTED LINE IS THE LATEST WORKING CODE , BELOW IS EXPERIMENTAL -->

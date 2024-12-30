@@ -1,0 +1,49 @@
+<!-- live_logs.html -->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Logs</title>
+    <style>
+        body {
+            background-color: black;
+            color: rgb(179, 76, 219);
+            font-family: 'Courier New', Courier, monospace;
+            padding: 20px;
+        }
+        h1 {
+            color: yellowgreen;
+        }
+        .live-container {
+            max-height: 500px;
+            overflow-y: auto;
+            border: 1px solid #333;
+            border-radius: 5px;
+            background-color: #222;
+            padding: 10px;
+        }
+        .live-item {
+            word-wrap: break-word;
+            margin-bottom: 5px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Live Logs for {{ user }}</h1>
+    <div class="live-container" id="live-container"></div>
+
+    <script>
+        const eventSource = new EventSource(`/live_logs_stream/{{ user }}`);
+        const liveContainer = document.getElementById('live-container');
+
+        eventSource.onmessage = function(event) {
+            const logItem = document.createElement('div');
+            logItem.classList.add('live-item');
+            logItem.textContent = event.data;
+            liveContainer.appendChild(logItem);
+        };
+    </script>
+</body>
+</html>
