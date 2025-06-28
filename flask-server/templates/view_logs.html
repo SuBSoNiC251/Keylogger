@@ -84,7 +84,7 @@
             <a href="/logout">Logout</a>
         </div>
     </nav>
-    <h1>Logs for {{ user }}</h1>
+    <h1 class="page-header">Logs for {{ user }}</h1>
     <div class="log-container">
         {% for device, logs in logs.items() %}
             <div class="log-column">
