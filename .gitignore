@@ -1,0 +1,4 @@
+__pycache__/
+flask-server/logs.db
+flask-server/server_old.py
+*.pyc
