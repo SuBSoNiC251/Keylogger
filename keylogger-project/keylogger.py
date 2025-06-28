@@ -146,7 +146,7 @@ def format_logs(keys):
             k = "<caps_lock>"
         elif key == "Key.enter":
             k = "<enter>"
-        elif key.find("Key") > 0:
+        elif key.startswith("Key"):
             k = ""
         message += k
     return message
