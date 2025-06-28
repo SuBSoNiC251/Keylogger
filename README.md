@@ -33,3 +33,16 @@ This project implements a basic keylogger and a keylogger detector. The aim is t
 - `pynput` library
 - PyInstaller
 
+### Configuration
+The Flask server reads several settings from environment variables or a `.env` file.
+Create a `.env` file in the repository root (or export the variables) with the following keys:
+
+```
+GOOGLE_API_KEY=<your Google Gemini API key>
+LOGS_DIR=path/to/store/logs      # optional, defaults to "user_logs"
+FLASK_PORT=8080                  # optional server port
+```
+
+`GOOGLE_API_KEY` is required for AI log analysis. The other variables customize
+where log files are stored and which port the Flask app listens on.
+
