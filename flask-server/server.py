@@ -8,70 +8,11 @@ from ai_analysis import analyze_keystrokes
 
 app = Flask(__name__)
 
-DATABASE = os.path.join(os.path.dirname(__file__), 'logs.db')
+from dotenv import load_dotenv
+import os, google.generativeai as genai
 
-# ---------------------- Database Helpers ----------------------
-
-def get_db():
-    db = getattr(g, '_database', None)
-    if db is None:
-        db = g._database = sqlite3.connect(DATABASE)
-        db.row_factory = sqlite3.Row
-    return db
-
-@app.teardown_appcontext
-def close_connection(exception):
-    db = getattr(g, '_database', None)
-    if db is not None:
-        db.close()
-
-def init_db():
-    db = get_db()
-    cursor = db.cursor()
-    cursor.execute(
-        'CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, '
-        'username TEXT UNIQUE NOT NULL, password TEXT NOT NULL)'
-    )
-    cursor.execute(
-        'CREATE TABLE IF NOT EXISTS logs (id INTEGER PRIMARY KEY AUTOINCREMENT, '
-        'user_id INTEGER NOT NULL, log TEXT NOT NULL, timestamp DATETIME DEFAULT CURRENT_TIMESTAMP, '
-        'FOREIGN KEY(user_id) REFERENCES users(id))'
-    )
-    db.commit()
-
-# Initialize database when the server starts
-with app.app_context():
-    init_db()
-
-# ---------------------- Authentication ----------------------
-
-def get_user(username):
-    cur = get_db().execute('SELECT * FROM users WHERE username=?', (username,))
-    return cur.fetchone()
-
-def check_auth(username, password):
-    user = get_user(username)
-    if user and check_password_hash(user['password'], password):
-        g.user = user
-        return True
-    return False
-
-def authenticate():
-    resp = jsonify({'message': 'Authentication required'})
-    resp.status_code = 401
-    resp.headers['WWW-Authenticate'] = 'Basic realm="Login Required"'
-    return resp
-
-def requires_auth(f):
-    @wraps(f)
-    def decorated(*args, **kwargs):
-        auth = request.authorization
-        if not auth or not check_auth(auth.username, auth.password):
-            return authenticate()
-        return f(*args, **kwargs)
-    return decorated
-
-# ---------------------- Routes ----------------------
+load_dotenv()
+genai.configure(api_key=os.getenv("GOOGLE_API_KEY")) #INPUT : Simulate the typing process from the provided keystroke log and output ONLY the final, intended text. Disregard all non-printing keystrokes, including but not limited to backspace, arrow keys, modifier keys, and function keys. The output should represent exactly what would be displayed on the screen after the entire sequence of keystrokes is processed
 
 live_keys = {}
 
