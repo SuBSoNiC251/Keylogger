@@ -33,3 +33,6 @@ This project implements a basic keylogger and a keylogger detector. The aim is t
 - `pynput` library
 - PyInstaller
 
+
+## Flask Server
+The logging server uses Flask with an SQLite database to store keystrokes. Each user must register with a username and password using the `/register` endpoint. All routes that accept or display logs (`/log`, `/logs/<user>`, `/view_logs/<user>` and related endpoints) are protected with HTTP basic authentication. The database is created automatically as `logs.db` in the `flask-server` directory.

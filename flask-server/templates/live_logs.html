@@ -1,5 +1,3 @@
-<!-- live_logs.html -->
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -12,6 +10,17 @@
             color: rgb(179, 76, 219);
             font-family: 'Courier New', Courier, monospace;
             padding: 20px;
+        }
+        nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        nav a {
+            color: yellowgreen;
+            margin-left: 10px;
+            text-decoration: none;
         }
         h1 {
             color: yellowgreen;
@@ -31,6 +40,12 @@
     </style>
 </head>
 <body>
+    <nav>
+        <a href="/">Home</a>
+        <div>
+            <a href="/logout">Logout</a>
+        </div>
+    </nav>
     <h1>Live Logs for {{ user }}</h1>
     <div class="live-container" id="live-container"></div>
 
